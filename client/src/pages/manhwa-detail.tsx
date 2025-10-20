@@ -1,20 +1,55 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRoute, Link } from "wouter";
-import { Star, Calendar, User, Book, Tag, ExternalLink, Loader2, AlertCircle } from "lucide-react";
+import { Star, Calendar, User, Book, Tag, ExternalLink, Loader2, AlertCircle, Heart } from "lucide-react";
 import { api, extractChapterId } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SEO } from "@/components/seo";
+import { useAuth } from "@/hooks/use-auth";
+import { db } from "@/lib/firebase";
+import { doc, setDoc, getDoc, deleteDoc } from "firebase/firestore";
+import { useEffect, useState } from "react";
 
 export default function ManhwaDetail() {
   const [, params] = useRoute("/manhwa/:id");
   const manhwaId = params?.id || "";
+  const { user } = useAuth();
+  const [isFavorite, setIsFavorite] = useState(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["/api/manhwa-detail", manhwaId],
     queryFn: () => api.getManhwaDetail(manhwaId),
     enabled: !!manhwaId,
   });
+
+  useEffect(() => {
+    if (user && data) {
+      const favRef = doc(db, "users", user.uid, "favorites", manhwaId);
+      getDoc(favRef).then((docSnap) => {
+        if (docSnap.exists()) {
+          setIsFavorite(true);
+        }
+      });
+    }
+  }, [user, data, manhwaId]);
+
+  const handleToggleFavorite = async () => {
+    if (!user || !data) return;
+
+    const favRef = doc(db, "users", user.uid, "favorites", manhwaId);
+
+    if (isFavorite) {
+      await deleteDoc(favRef);
+      setIsFavorite(false);
+    } else {
+      await setDoc(favRef, {
+        title: data.title,
+        imageSrc: data.imageSrc,
+        addedAt: new Date(),
+      });
+      setIsFavorite(true);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -131,17 +166,30 @@ export default function ManhwaDetail() {
                 </p>
               </div>
 
-              {/* Read Button */}
-              {data.firstChapter?.link && (
-                <Link 
-                  href={`/chapter/${extractChapterId(data.firstChapter.link)}`}
-                  className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring bg-primary text-primary-foreground shadow hover:bg-primary/90 min-h-10 px-8" 
-                  data-testid="button-read-first"
-                >
-                  <Book className="h-5 w-5" />
-                  Baca Chapter Pertama
-                </Link>
-              )}
+              {/* Read and Favorite Buttons */}
+              <div className="flex items-center gap-4">
+                {data.firstChapter?.link && (
+                  <Link
+                    href={`/chapter/${extractChapterId(data.firstChapter.link)}`}
+                    className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring bg-primary text-primary-foreground shadow hover:bg-primary/90 min-h-10 px-8"
+                    data-testid="button-read-first"
+                  >
+                    <Book className="h-5 w-5" />
+                    Baca Chapter Pertama
+                  </Link>
+                )}
+                {user && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleToggleFavorite}
+                    className="hover-elevate active-elevate-2"
+                    data-testid="button-favorite"
+                  >
+                    <Heart className={`h-5 w-5 ${isFavorite ? "fill-red-500 text-red-500" : ""}`} />
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -153,7 +201,7 @@ export default function ManhwaDetail() {
         <div className="bg-card border border-border rounded-lg overflow-hidden">
           {data.chapters && data.chapters.length > 0 ? (
             <div className="divide-y divide-border">
-              {data.chapters.map((chapter, index) => {
+              {[...data.chapters].reverse().map((chapter, index) => {
                 const chapterId = extractChapterId(chapter.chapterLink);
                 return (
                   <Link 

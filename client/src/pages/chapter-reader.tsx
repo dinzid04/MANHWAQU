@@ -5,18 +5,42 @@ import { api, extractChapterId } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { SEO } from "@/components/seo";
+import { useAuth } from "@/hooks/use-auth";
+import { db } from "@/lib/firebase";
+import { doc, setDoc } from "firebase/firestore";
 
 export default function ChapterReader() {
   const [, params] = useRoute("/chapter/:id");
   const [, navigate] = useLocation();
   const chapterId = params?.id || "";
   const [imageLoadErrors, setImageLoadErrors] = useState<Set<number>>(new Set());
+  const { user } = useAuth();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["/api/chapter", chapterId],
     queryFn: () => api.getChapter(chapterId),
     enabled: !!chapterId,
   });
+
+  // Save to history
+  useEffect(() => {
+    if (user && data) {
+      const historyRef = doc(db, "users", user.uid, "history", chapterId);
+      setDoc(historyRef, {
+        title: data.title,
+        readAt: new Date(),
+      });
+    } else if (data) {
+      // Basic local storage for guests, you might want a more robust solution
+      const history = JSON.parse(localStorage.getItem("history") || "[]");
+      const existingIndex = history.findIndex((item: any) => item.id === chapterId);
+      if (existingIndex > -1) {
+        history.splice(existingIndex, 1);
+      }
+      history.unshift({ id: chapterId, title: data.title, readAt: new Date() });
+      localStorage.setItem("history", JSON.stringify(history.slice(0, 50))); // Limit history size
+    }
+  }, [user, data, chapterId]);
 
   // Scroll to top when chapter changes
   useEffect(() => {
