@@ -8,13 +8,14 @@ import { getFirestore } from "firebase/firestore";
 // Your web app's Firebase configuration
 // GANTI DENGAN KONFIGURASI FIREBASE ANDA
 const firebaseConfig = {
-  apiKey: "GANTI_DENGAN_API_KEY_ANDA",
-  authDomain: "GANTI_DENGAN_AUTH_DOMAIN_ANDA",
-  projectId: "GANTI_DENGAN_PROJECT_ID_ANDA",
-  storageBucket: "GANTI_DENGAN_STORAGE_BUCKET_ANDA",
-  messagingSenderId: "GANTI_DENGAN_MESSAGING_SENDER_ID_ANDA",
-  appId: "GANTI_DENGAN_APP_ID_ANDA"
-};
+    apiKey: "AIzaSyAQpLgRcRkhJcHtJrkX6KktoAYEknUj-GA",
+    authDomain: "comicku-a4aae.firebaseapp.com",
+    projectId: "comicku-a4aae",
+    storageBucket: "comicku-a4aae.firebasestorage.app",
+    messagingSenderId: "449222490773",
+    appId: "1:449222490773:web:2038082d8995a70d11b99c"
+  };
+
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
